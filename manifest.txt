@@ -1,0 +1,10 @@
+package_id=exe-ef78997488e6121971404a3f25686fee
+md5=ef78997488e6121971404a3f25686fee
+repo=liuzy88/shaiya.fun
+ref=main
+file_name=geek.exe
+total_size=7020016
+chunk_size=1048576
+chunk_count=7
+chunk_pattern=part-%03d.bin
+proxy_list=https://ghfast.top/;https://ghproxy.cc/;DIRECT

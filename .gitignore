@@ -3,4 +3,3 @@ splitter
 .idea/
 exe/*.exe
 patch/part-*.bin
-manifest.txt
