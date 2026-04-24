@@ -20,7 +20,7 @@ make splitter
 ./splitter \
   --input install.exe \
   --output patch \
-  --repo liuzy88/shaiyafun \
+  --repo liuzy88/shaiya.fun \
   --tag v1.0.0
 ```
 
