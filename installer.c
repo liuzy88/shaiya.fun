@@ -15,7 +15,7 @@
 #define BUFFER_SIZE 65536
 #define DEFAULT_REPO "liuzy88/shaiya.fun"
 #define DEFAULT_REF "main"
-#define DIRECT_ONLY_PROXY_LIST "DIRECT"
+#define DEFAULT_PROXY_LIST "https://ghfast.top/;DIRECT"
 #define INSTALLER_VERSION "api-20260424-6"
 
 typedef struct {
@@ -451,6 +451,49 @@ static int download_manifest_with_fallback(const char *repo, const char *ref, co
     return -1;
 }
 
+static int download_default_manifest_with_fallback(const char *repo, const char *ref, const char *proxy_list,
+                                                   manifest_t *manifest) {
+    char origin_url[MAX_STR];
+    char request_url[MAX_STR];
+    char proxy[MAX_STR];
+    http_buffer_t response;
+    int proxy_index = 0;
+
+    snprintf(origin_url,
+             sizeof(origin_url),
+             "https://api.github.com/repos/%s/contents/manifest.txt?ref=%s",
+             repo,
+             ref);
+
+    while (extract_proxy(proxy_list, proxy_index++, proxy, sizeof(proxy)) == 0) {
+        build_request_url(proxy, origin_url, request_url, sizeof(request_url));
+        log_message("downloading default manifest.txt via %s", proxy);
+        if (download_response(request_url, &response) != 0) {
+            continue;
+        }
+
+        log_buffer_preview("default manifest", response.data, response.size);
+        if (strstr(response.data, "<html") != NULL || strstr(response.data, "<!DOCTYPE html") != NULL) {
+            log_message("default manifest response looks like HTML, rejecting");
+            free(response.data);
+            continue;
+        }
+
+        if (parse_manifest_buffer(response.data, response.size, manifest) == 0) {
+            log_message("default manifest parsed: package_id=%s file_name=%s chunk_count=%lu",
+                        manifest->package_id,
+                        manifest->file_name,
+                        (unsigned long) manifest->chunk_count);
+            free(response.data);
+            return 0;
+        }
+        free(response.data);
+    }
+
+    log_message("failed to download default manifest.txt");
+    return -1;
+}
+
 static int merge_chunks(const manifest_t *manifest, const char *download_dir, const char *output_path) {
     FILE *output = fopen(output_path, "wb");
     BYTE buffer[BUFFER_SIZE];
@@ -573,23 +616,26 @@ int main(int argc, char **argv) {
     manifest_t manifest;
     unsigned long long i;
 
-    if (argc < 2) {
-        log_message("usage: install.exe exe-<full-md5>");
-        return 1;
-    }
-
     log_message("ChunkInstaller %s", INSTALLER_VERSION);
 
-    strncpy(package_id, argv[1], sizeof(package_id) - 1);
-    package_id[sizeof(package_id) - 1] = '\0';
+    if (argc >= 2) {
+        strncpy(package_id, argv[1], sizeof(package_id) - 1);
+        package_id[sizeof(package_id) - 1] = '\0';
+        log_message("mode=package package_id=%s", package_id);
 
-    if (download_manifest_with_fallback(DEFAULT_REPO, DEFAULT_REF, package_id, DIRECT_ONLY_PROXY_LIST, &manifest) != 0) {
-        return 1;
-    }
+        if (download_manifest_with_fallback(DEFAULT_REPO, DEFAULT_REF, package_id, DEFAULT_PROXY_LIST, &manifest) != 0) {
+            return 1;
+        }
 
-    if (_stricmp(manifest.package_id, package_id) != 0) {
-        log_message("manifest package_id mismatch");
-        return 1;
+        if (_stricmp(manifest.package_id, package_id) != 0) {
+            log_message("manifest package_id mismatch");
+            return 1;
+        }
+    } else {
+        log_message("mode=default manifest.txt from repository root");
+        if (download_default_manifest_with_fallback(DEFAULT_REPO, DEFAULT_REF, DEFAULT_PROXY_LIST, &manifest) != 0) {
+            return 1;
+        }
     }
 
     if (ensure_directory(download_dir) != 0) {
@@ -604,7 +650,7 @@ int main(int argc, char **argv) {
         if (join_path(chunk_path, sizeof(chunk_path), download_dir, asset_name) != 0) {
             return 1;
         }
-        if (download_asset_with_fallback(manifest.repo, manifest.ref, manifest.package_id, DIRECT_ONLY_PROXY_LIST, asset_name,
+        if (download_asset_with_fallback(manifest.repo, manifest.ref, manifest.package_id, DEFAULT_PROXY_LIST, asset_name,
                                          chunk_path) != 0) {
             return 1;
         }
