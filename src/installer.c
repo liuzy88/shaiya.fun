@@ -1,7 +1,6 @@
 #ifdef _WIN32
 
 #define _CRT_SECURE_NO_WARNINGS
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,12 +12,15 @@
 
 #define MAX_STR 2048
 #define BUFFER_SIZE 65536
+#define DEFAULT_REPO "liuzy88/shaiya.fun"
+#define DEFAULT_REF "main"
 
 typedef struct {
+    char package_id[MAX_STR];
+    char md5[MAX_STR];
     char repo[MAX_STR];
-    char tag[MAX_STR];
+    char ref[MAX_STR];
     char file_name[MAX_STR];
-    char launcher_name[MAX_STR];
     char chunk_pattern[MAX_STR];
     char proxy_list[MAX_STR];
     unsigned long long total_size;
@@ -45,12 +47,14 @@ static int read_line(FILE *fp, char *buffer, size_t size) {
 static int manifest_set_value(manifest_t *manifest, const char *key, const char *value) {
     if (strcmp(key, "repo") == 0) {
         strncpy(manifest->repo, value, sizeof(manifest->repo) - 1);
-    } else if (strcmp(key, "tag") == 0) {
-        strncpy(manifest->tag, value, sizeof(manifest->tag) - 1);
+    } else if (strcmp(key, "ref") == 0) {
+        strncpy(manifest->ref, value, sizeof(manifest->ref) - 1);
+    } else if (strcmp(key, "package_id") == 0) {
+        strncpy(manifest->package_id, value, sizeof(manifest->package_id) - 1);
+    } else if (strcmp(key, "md5") == 0) {
+        strncpy(manifest->md5, value, sizeof(manifest->md5) - 1);
     } else if (strcmp(key, "file_name") == 0) {
         strncpy(manifest->file_name, value, sizeof(manifest->file_name) - 1);
-    } else if (strcmp(key, "launcher_name") == 0) {
-        strncpy(manifest->launcher_name, value, sizeof(manifest->launcher_name) - 1);
     } else if (strcmp(key, "chunk_pattern") == 0) {
         strncpy(manifest->chunk_pattern, value, sizeof(manifest->chunk_pattern) - 1);
     } else if (strcmp(key, "proxy_list") == 0) {
@@ -85,7 +89,8 @@ static int load_manifest(const char *path, manifest_t *manifest) {
     }
     fclose(fp);
 
-    if (manifest->repo[0] == '\0' || manifest->tag[0] == '\0' || manifest->file_name[0] == '\0' ||
+    if (manifest->repo[0] == '\0' || manifest->ref[0] == '\0' || manifest->package_id[0] == '\0' ||
+        manifest->file_name[0] == '\0' ||
         manifest->chunk_pattern[0] == '\0' || manifest->chunk_count == 0) {
         log_message("manifest is incomplete");
         return -1;
@@ -133,12 +138,14 @@ static int extract_proxy(const char *proxy_list, int index, char *proxy, size_t 
     return -1;
 }
 
-static void build_asset_url(const manifest_t *manifest, const char *asset_name, char *url, size_t url_size) {
+static void build_asset_url(const char *repo, const char *ref, const char *package_id, const char *asset_name, char *url,
+                            size_t url_size) {
     snprintf(url,
              url_size,
-             "https://github.com/%s/releases/download/%s/%s",
-             manifest->repo,
-             manifest->tag,
+             "https://raw.githubusercontent.com/%s/%s/%s/%s",
+             repo,
+             ref,
+             package_id,
              asset_name);
 }
 
@@ -257,14 +264,15 @@ cleanup:
     return ok;
 }
 
-static int download_chunk_with_fallback(const manifest_t *manifest, const char *asset_name, const char *output_path) {
+static int download_asset_with_fallback(const char *repo, const char *ref, const char *package_id, const char *proxy_list,
+                                        const char *asset_name, const char *output_path) {
     char origin_url[MAX_STR];
     char request_url[MAX_STR];
     char proxy[MAX_STR];
     int proxy_index = 0;
 
-    build_asset_url(manifest, asset_name, origin_url, sizeof(origin_url));
-    while (extract_proxy(manifest->proxy_list, proxy_index++, proxy, sizeof(proxy)) == 0) {
+    build_asset_url(repo, ref, package_id, asset_name, origin_url, sizeof(origin_url));
+    while (extract_proxy(proxy_list, proxy_index++, proxy, sizeof(proxy)) == 0) {
         build_request_url(proxy, origin_url, request_url, sizeof(request_url));
         log_message("downloading %s via %s", asset_name, proxy);
         if (download_to_file(request_url, output_path) == 0) {
@@ -340,17 +348,32 @@ static int launch_program(const char *path) {
 }
 
 int main(int argc, char **argv) {
+    char package_id[MAX_PATH];
     char manifest_path[MAX_PATH] = "manifest.txt";
     char download_dir[MAX_PATH] = "patch";
     char merged_path[MAX_PATH];
     manifest_t manifest;
     unsigned long long i;
 
-    if (argc > 1) {
-        strncpy(manifest_path, argv[1], sizeof(manifest_path) - 1);
+    if (argc < 2) {
+        log_message("usage: install.exe exe-<full-md5>");
+        return 1;
+    }
+
+    strncpy(package_id, argv[1], sizeof(package_id) - 1);
+    package_id[sizeof(package_id) - 1] = '\0';
+
+    if (download_asset_with_fallback(DEFAULT_REPO, DEFAULT_REF, package_id, "https://ghfast.top/;https://ghproxy.cc/;DIRECT",
+                                     "manifest.txt", manifest_path) != 0) {
+        return 1;
     }
 
     if (load_manifest(manifest_path, &manifest) != 0) {
+        return 1;
+    }
+
+    if (_stricmp(manifest.package_id, package_id) != 0) {
+        log_message("manifest package_id mismatch");
         return 1;
     }
 
@@ -366,7 +389,8 @@ int main(int argc, char **argv) {
         if (join_path(chunk_path, sizeof(chunk_path), download_dir, asset_name) != 0) {
             return 1;
         }
-        if (download_chunk_with_fallback(&manifest, asset_name, chunk_path) != 0) {
+        if (download_asset_with_fallback(manifest.repo, manifest.ref, manifest.package_id, manifest.proxy_list, asset_name,
+                                         chunk_path) != 0) {
             return 1;
         }
     }

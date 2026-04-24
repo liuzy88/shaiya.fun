@@ -1,9 +1,0 @@
-repo=liuzy88/shaiya.fun
-tag=v1.0.0
-file_name=install.exe
-launcher_name=installer.exe
-total_size=1060294298
-chunk_size=104857600
-chunk_count=11
-chunk_pattern=part-%03d.bin
-proxy_list=https://ghfast.top/;https://ghproxy.cc/;DIRECT
