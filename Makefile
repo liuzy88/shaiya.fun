@@ -5,8 +5,8 @@ CFLAGS ?= -O2 -Wall -Wextra -pedantic
 
 all: splitter
 
-splitter: tools/splitter.c
-	$(CC) $(CFLAGS) -o $@ tools/splitter.c
+splitter: splitter.c
+	$(CC) $(CFLAGS) -o $@ splitter.c
 
 clean:
 	rm -f splitter

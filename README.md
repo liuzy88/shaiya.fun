@@ -4,8 +4,8 @@ This repo contains a chunked delivery flow for Windows executables stored under 
 
 ## Files
 
-- `tools/splitter.c`: reads `exe/<name>.exe`, calculates the full MD5, and writes chunk assets into `exe-<md5>/`
-- `src/installer.c`: `install.exe` downloads repository files through public GitHub proxies, merges them, and launches the target executable
+- `splitter.c`: reads `exe/<name>.exe`, calculates the full MD5, and writes chunk assets into `exe-<md5>/`
+- `installer.c`: `install.exe` downloads repository files through public GitHub proxies, merges them, and launches the target executable
 - `Makefile`: builds the local splitter on macOS/Linux
 
 ## Build splitter
@@ -45,7 +45,7 @@ For download-flow testing, you can override the chunk size:
 Use a Windows or MinGW toolchain to compile:
 
 ```bash
-gcc -O2 -Wall -Wextra -municode -o install.exe src/installer.c -lwinhttp
+gcc -O2 -Wall -Wextra -municode -o install.exe installer.c -lwinhttp -lshell32
 ```
 
 Distribute `install.exe` by itself, then launch it with the package id:
