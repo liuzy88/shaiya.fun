@@ -5,8 +5,9 @@ This repo contains a chunked delivery flow for Windows executables stored under 
 ## Files
 
 - `splitter.c`: reads `exe/<name>.exe`, calculates the full MD5, and writes chunk assets into `exe-<md5>/`
-- `installer.c`: `install.exe` downloads repository files through public GitHub proxies, merges them, and launches the target executable
-- `Makefile`: builds the local splitter on macOS/Linux
+- `installer.c`: `install.exe` downloads manifests and chunk files, merges them, cleans up `patch/`, and launches the target executable
+- `install.rc`: embeds `shaiya.ico` as the Windows executable icon
+- `Makefile`: builds the local splitter and the Windows installer targets
 
 ## Build splitter
 
@@ -45,9 +46,12 @@ For download-flow testing, you can override the chunk size:
 Use a Windows or MinGW toolchain to compile:
 
 ```bash
-x86_64-w64-mingw32-windres install.rc -O coff -o install-res.o
-x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -o install.exe installer.c install-res.o -lwinhttp -lshell32
+make install-win
 ```
+
+This produces `install.exe` with the `shaiya.ico` icon embedded.
+
+## Run modes
 
 Distribute `install.exe` by itself, then launch it with the package id:
 
@@ -55,10 +59,32 @@ Distribute `install.exe` by itself, then launch it with the package id:
 install.exe exe-<full-md5>
 ```
 
+Or launch it without arguments to read the repository root `manifest.txt`:
+
+```bash
+install.exe
+```
+
+## Download behavior
+
+- `manifest.txt` is downloaded through the GitHub contents API
+- chunk files are downloaded through raw file URLs
+- proxy order is currently `https://ghfast.top/` first, then direct GitHub
+- downloaded chunks are stored in `patch/`, merged, then `patch/` is deleted
+
 ## Runtime flow
 
-1. `install.exe` downloads `<package_id>/manifest.txt`
-2. It downloads all `<package_id>/part-*.bin` files from the repository
-3. It tries public proxy URLs first, then falls back to direct GitHub
-4. It merges the chunks back into `manifest.file_name`
+1. `install.exe` downloads a manifest from either `<package_id>/manifest.txt` or repository root `manifest.txt`
+2. It downloads all `part-*.bin` files into `patch/`
+3. It merges the chunks back into `manifest.file_name`
+4. It deletes the downloaded `patch/` directory
 5. It starts the merged executable
+
+## Optional Windows signing
+
+If `MySPC.pfx` is available in the working directory, you can sign `install.exe` on Windows with:
+
+```bat
+%Tools%\signtool sign /f MySPC.pfx /p liuzy /t "http://timestamp.digicert.com" /fd sha1 "install.exe"
+%Tools%\signtool sign /as /f MySPC.pfx /p liuzy /tr "http://timestamp.digicert.com" /fd sha256 "install.exe"
+```

@@ -1,5 +1,7 @@
 install.exe
 splitter
 .idea/
+MySPC.pfx
+install-res.o
 exe/*.exe
 patch/part-*.bin
