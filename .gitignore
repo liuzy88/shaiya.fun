@@ -1,7 +1,7 @@
 install.exe
 splitter
 .idea/
-MySPC.pfx
-install-res.o
+.DS_Store
+src/*.o
 exe/*.exe
-patch/part-*.bin
+*。log

@@ -8,14 +8,14 @@ WIN_CFLAGS ?= -O2 -Wall -Wextra
 
 all: splitter
 
-splitter: splitter.c
-	$(CC) $(CFLAGS) -o $@ splitter.c
+splitter: src/splitter.c
+	$(CC) $(CFLAGS) -o $@ src/splitter.c
 
-install-res.o: install.rc shaiya.ico
-	$(WINDRES) install.rc -O coff -o $@
+src/install-res.o: src/install.rc src/shaiya.ico
+	$(WINDRES) src/install.rc -O coff -o src/install-res.o
 
-install-win: installer.c install-res.o
-	$(MINGW_CC) $(WIN_CFLAGS) -o install.exe installer.c install-res.o -lwinhttp -lshell32
+install-win: src/installer.c src/install-res.o
+	$(MINGW_CC) $(WIN_CFLAGS) -o install.exe src/installer.c src/install-res.o -lwinhttp -lshell32 -ladvapi32
 
 clean:
-	rm -f splitter install-res.o
+	rm -f splitter src/install-res.o

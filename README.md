@@ -4,16 +4,19 @@ This repo contains a chunked delivery flow for Windows executables stored under 
 
 ## Files
 
-- `splitter.c`: reads `exe/<name>.exe`, calculates the full MD5, and writes chunk assets into `exe-<md5>/`
-- `installer.c`: `install.exe` downloads manifests and chunk files, merges them, cleans up `patch/`, and launches the target executable
-- `install.rc`: embeds `shaiya.ico` as the Windows executable icon
-- `Makefile`: builds the local splitter and the Windows installer targets
+- `src/splitter.c`: reads `exe/<name>.exe`, calculates the full MD5, and writes chunk assets into `exe-<md5>/`
+- `src/installer.c`: `install.exe` downloads manifests and chunk files, merges them, cleans up `patch/`, and launches the target executable
+- `src/install.rc`: embeds `src/shaiya.ico` as the Windows executable icon
+- `src/MySPC.pfx`: optional signing certificate kept alongside the Windows installer sources
+- `Makefile`: builds the root output binaries `splitter` and `install.exe`
 
 ## Build splitter
 
 ```bash
 make splitter
 ```
+
+This writes the `splitter` executable to the repository root.
 
 ## Split a large installer
 
@@ -49,7 +52,7 @@ Use a Windows or MinGW toolchain to compile:
 make install-win
 ```
 
-This produces `install.exe` with the `shaiya.ico` icon embedded.
+This produces `install.exe` in the repository root with the `src/shaiya.ico` icon embedded.
 
 ## Run modes
 
@@ -79,12 +82,3 @@ install.exe
 3. It merges the chunks back into `manifest.file_name`
 4. It deletes the downloaded `patch/` directory
 5. It starts the merged executable
-
-## Optional Windows signing
-
-If `MySPC.pfx` is available in the working directory, you can sign `install.exe` on Windows with:
-
-```bat
-%Tools%\signtool sign /f MySPC.pfx /p liuzy /t "http://timestamp.digicert.com" /fd sha1 "install.exe"
-%Tools%\signtool sign /as /f MySPC.pfx /p liuzy /tr "http://timestamp.digicert.com" /fd sha256 "install.exe"
-```
