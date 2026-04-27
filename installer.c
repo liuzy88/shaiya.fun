@@ -172,8 +172,8 @@ static int extract_proxy(const char *proxy_list, int index, char *proxy, size_t 
     return -1;
 }
 
-static void build_asset_url(const char *repo, const char *ref, const char *package_id, const char *asset_name, char *url,
-                            size_t url_size) {
+static void build_api_asset_url(const char *repo, const char *ref, const char *package_id, const char *asset_name, char *url,
+                                size_t url_size) {
     snprintf(url,
              url_size,
              "https://api.github.com/repos/%s/contents/%s/%s?ref=%s",
@@ -181,6 +181,17 @@ static void build_asset_url(const char *repo, const char *ref, const char *packa
              package_id,
              asset_name,
              ref);
+}
+
+static void build_raw_asset_url(const char *repo, const char *ref, const char *package_id, const char *asset_name, char *url,
+                                size_t url_size) {
+    snprintf(url,
+             url_size,
+             "https://raw.githubusercontent.com/%s/%s/%s/%s",
+             repo,
+             ref,
+             package_id,
+             asset_name);
 }
 
 static void build_request_url(const char *proxy, const char *origin_url, char *url, size_t url_size) {
@@ -395,7 +406,7 @@ static int download_asset_with_fallback(const char *repo, const char *ref, const
     http_buffer_t response;
     int proxy_index = 0;
 
-    build_asset_url(repo, ref, package_id, asset_name, origin_url, sizeof(origin_url));
+    build_raw_asset_url(repo, ref, package_id, asset_name, origin_url, sizeof(origin_url));
     while (extract_proxy(proxy_list, proxy_index++, proxy, sizeof(proxy)) == 0) {
         build_request_url(proxy, origin_url, request_url, sizeof(request_url));
         log_message("downloading %s via %s", asset_name, proxy);
@@ -421,7 +432,7 @@ static int download_manifest_with_fallback(const char *repo, const char *ref, co
     http_buffer_t response;
     int proxy_index = 0;
 
-    build_asset_url(repo, ref, package_id, "manifest.txt", origin_url, sizeof(origin_url));
+    build_api_asset_url(repo, ref, package_id, "manifest.txt", origin_url, sizeof(origin_url));
     while (extract_proxy(proxy_list, proxy_index++, proxy, sizeof(proxy)) == 0) {
         build_request_url(proxy, origin_url, request_url, sizeof(request_url));
         log_message("downloading manifest.txt via %s", proxy);

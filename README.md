@@ -45,7 +45,8 @@ For download-flow testing, you can override the chunk size:
 Use a Windows or MinGW toolchain to compile:
 
 ```bash
-gcc -O2 -Wall -Wextra -municode -o install.exe installer.c -lwinhttp -lshell32
+x86_64-w64-mingw32-windres install.rc -O coff -o install-res.o
+x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -o install.exe installer.c install-res.o -lwinhttp -lshell32
 ```
 
 Distribute `install.exe` by itself, then launch it with the package id:
