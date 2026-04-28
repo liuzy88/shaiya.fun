@@ -4,4 +4,6 @@ splitter
 .DS_Store
 src/*.o
 exe/*.exe
-*。log
+*.log
+*.tmp
+*.bak

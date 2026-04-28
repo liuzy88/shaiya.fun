@@ -5,7 +5,7 @@ This repo contains a chunked delivery flow for Windows executables stored under 
 ## Files
 
 - `src/splitter.c`: reads `exe/<name>.exe`, calculates the full MD5, and writes chunk assets into `exe-<md5>/`
-- `src/installer.c`: `install.exe` downloads manifests and chunk files, merges them, cleans up `patch/`, and launches the target executable
+- `src/main.c`, `src/download.c`, `src/manifest.c`, `src/http.c`, `src/ui.c`, `src/log.c`, `src/util.c`, `src/install.h`: build `install.exe`, which downloads manifests and chunk files, verifies and launches the target executable
 - `src/install.rc`: embeds `src/shaiya.ico` as the Windows executable icon
 - `src/MySPC.pfx`: optional signing certificate kept alongside the Windows installer sources
 - `Makefile`: builds the root output binaries `splitter` and `install.exe`
